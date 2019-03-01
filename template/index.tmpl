@@ -10,7 +10,15 @@
 </head>
 <body>
 <h1>
-    {{ .title }}
+  {{ .title }}
 </h1>
+<form action="post" method="post">
+  <input type="text" name="name" value="">
+  <input type="text" name="message" value="">
+  <input type="submit" value="送信">
+</form>
+{{ if ne .name "" }}
+  <p>{{ .name }}さんは{{ .message }}といいました！</p>
+{{ end }}
 </body>
 </html>
