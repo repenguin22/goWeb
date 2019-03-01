@@ -17,8 +17,6 @@
   <input type="text" name="message" value="">
   <input type="submit" value="送信">
 </form>
-{{ if ne .name "" }}
-  <p>{{ .name }}さんは{{ .message }}といいました！</p>
-{{ end }}
+  <p>{{ .msg }}</p>
 </body>
 </html>
