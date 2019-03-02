@@ -17,6 +17,8 @@
   <input type="text" name="message" value="">
   <input type="submit" value="送信">
 </form>
-  <p>{{ .msg }}</p>
+{{range .msg}}
+  <p>{{ .Message }}</p>
+{{end}}
 </body>
 </html>

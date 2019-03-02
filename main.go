@@ -4,32 +4,64 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 
+func getdbconn() *gorm.DB {
+	db, err := gorm.Open("mysql", "root:@/go?charset=utf8&parseTime=True&loc=Local")
+	if err != nil {
+		panic(err)
+	}
+
+	db.LogMode(true)
+	return db
+}
+
+type Message struct {
+	ID      int    `gorm:"AUTO_INCREMENT"`
+	Message string `gorm:"size:255"`
+}
+
 type human struct {
-	name, message string
+	Name, Message string
 }
 
 func (human human) Said() string {
-	return human.name + "さんが" + human.message + "と申しております"
+	return human.Name + "さんが" + human.Message + "と申しております"
 }
 
 func main() {
 	router := gin.Default()
 	router.LoadHTMLGlob("template/*")
+
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.tmpl", gin.H{
 			"title": "ようこそ！！!",
 		})
 	})
+
 	router.POST("/post", func(c *gin.Context) {
 		name := c.PostForm("name")
 		messageVal := c.PostForm("message")
-		human := human{name, messageVal}
-		said := human.Said()
+
+		humanObj := human{
+			Name:    name,
+			Message: messageVal}
+		said := humanObj.Said()
+		db := getdbconn()
+		defer db.Close()
+		// テーブルの作成
+		db.AutoMigrate(&Message{})
+		message := Message{}
+		message.ID = 0
+		message.Message = said
+		db.Create(&message)
+		messages := []Message{}
+		db.Find(&messages)
 		c.HTML(http.StatusOK, "index.tmpl", gin.H{
 			"title": "ようこそ！！",
-			"msg":   said,
+			"msg":   messages,
 		})
 	})
 	router.Run(":8080")
