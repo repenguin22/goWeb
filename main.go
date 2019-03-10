@@ -24,7 +24,8 @@ type Message struct {
 }
 
 type human struct {
-	Name, Message string
+	Name    string `form:"name" binding:"required"`
+	Message string `form:"message" binding:"required"`
 }
 
 func (human human) Said() string {
@@ -42,12 +43,29 @@ func main() {
 	})
 
 	router.POST("/post", func(c *gin.Context) {
-		name := c.PostForm("name")
-		messageVal := c.PostForm("message")
+		/*name := c.PostForm("name")
+		messageVal := c.PostForm("message")*/
 
-		humanObj := human{
-			Name:    name,
-			Message: messageVal}
+		var humanObj human
+		// bindingする
+		if err := c.ShouldBind(&humanObj); err != nil {
+			// エラーだったらエラーで返す
+			c.HTML(http.StatusOK, "index.tmpl", gin.H{
+				"title": "エラー",
+			})
+			return
+		}
+		// エラー処理
+		if humanObj.Name == "" || humanObj.Message == "" {
+			c.HTML(http.StatusOK, "index.tmpl", gin.H{
+				"title": "入力がされていません",
+			})
+			return
+		}
+
+		/*humanObj := human{
+		Name:    name,
+		Message: messageVal}*/
 		said := humanObj.Said()
 		db := getdbconn()
 		defer db.Close()
