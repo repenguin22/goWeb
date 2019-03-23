@@ -18,69 +18,40 @@ func getdbconn() *gorm.DB {
 	return db
 }
 
-type Message struct {
-	ID      int    `gorm:"AUTO_INCREMENT"`
-	Message string `gorm:"size:255"`
+type article struct {
+	gorm.Model
+	Title      string `gorm:"size:255"`
+	Content    string `gorm:"size:255"`
+	Image_path string `gorm:"size:255"`
 }
 
-type human struct {
-	Name    string `form:"name" binding:"required"`
-	Message string `form:"message" binding:"required"`
-}
-
-func (human human) Said() string {
-	return human.Name + "さんが" + human.Message + "と申しております"
+func getContents(c *gin.Context) {
+	// 記事の配列を宣言
+	articles := []article{}
+	// 接続を確立
+	db := getdbconn()
+	db.Set("gorm:table_options", "ENGINE=InnoDB")
+	db.AutoMigrate(&article{})
+	// 接続を後で閉じる
+	defer db.Close()
+	// 全件取得
+	db.Find(&articles)
+	// view呼び出し
+	c.HTML(http.StatusOK, "top.tmpl", gin.H{
+		"articles": articles,
+	})
 }
 
 func main() {
 	router := gin.Default()
+	// templateフォルダから読み込む
 	router.LoadHTMLGlob("template/*")
+	// imgフォルダのパスを通す
+	router.Static("/img", "./img")
+	// cssフォルダのパスを通す
+	router.Static("/css", "./css")
 
-	router.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.tmpl", gin.H{
-			"title": "ようこそ！！!",
-		})
-	})
+	router.GET("/", getContents)
 
-	router.POST("/post", func(c *gin.Context) {
-		/*name := c.PostForm("name")
-		messageVal := c.PostForm("message")*/
-
-		var humanObj human
-		// bindingする
-		if err := c.ShouldBind(&humanObj); err != nil {
-			// エラーだったらエラーで返す
-			c.HTML(http.StatusOK, "index.tmpl", gin.H{
-				"title": "エラー",
-			})
-			return
-		}
-		// エラー処理
-		if humanObj.Name == "" || humanObj.Message == "" {
-			c.HTML(http.StatusOK, "index.tmpl", gin.H{
-				"title": "入力がされていません",
-			})
-			return
-		}
-
-		/*humanObj := human{
-		Name:    name,
-		Message: messageVal}*/
-		said := humanObj.Said()
-		db := getdbconn()
-		defer db.Close()
-		// テーブルの作成
-		db.AutoMigrate(&Message{})
-		message := Message{}
-		message.ID = 0
-		message.Message = said
-		db.Create(&message)
-		messages := []Message{}
-		db.Find(&messages)
-		c.HTML(http.StatusOK, "index.tmpl", gin.H{
-			"title": "ようこそ！！",
-			"msg":   messages,
-		})
-	})
 	router.Run(":8080")
 }
